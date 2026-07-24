@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: 'Met Office Weather Cloud Function'
+  title: 'Met Office Weather Cloud Run function'
   description: 'Reads the current outdoor weather for a fixed latitude/longitude from the Met Office Weather DataHub Site-Specific hourly forecast API and returns it as a single JSON envelope.'
   version: 1.0.0
 paths:
