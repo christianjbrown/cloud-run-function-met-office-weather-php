@@ -1,6 +1,6 @@
 # Met Office Weather Google Cloud Run Function
 
-[![CI](https://github.com/christianjbrown/php-gcp-function-met-office-weather/actions/workflows/ci.yml/badge.svg)](https://github.com/christianjbrown/php-gcp-function-met-office-weather/actions/workflows/ci.yml)
+[![CI](https://github.com/christianjbrown/cloud-run-function-met-office-weather-php/actions/workflows/ci.yml/badge.svg)](https://github.com/christianjbrown/cloud-run-function-met-office-weather-php/actions/workflows/ci.yml)
 
 A small [Google Cloud Run function](https://cloud.google.com/run) (PHP) that reads the current outdoor weather for a fixed latitude/longitude from the [Met Office Weather DataHub](https://datahub.metoffice.gov.uk/) Site-Specific **hourly** forecast API and returns it as a single JSON payload.
 
@@ -23,8 +23,8 @@ It fetches the hourly forecast for the configured location, selects the step for
 ## :building_construction: Installation
 
 ```bash
-git clone git@github.com:christianjbrown/php-gcp-function-met-office-weather.git
-cd php-gcp-function-met-office-weather
+git clone git@github.com:christianjbrown/cloud-run-function-met-office-weather-php.git
+cd cloud-run-function-met-office-weather
 composer install
 ```
 
@@ -159,10 +159,10 @@ The Met Office API key, latitude, longitude, and request-gating values are suppl
 The entry point is `run()` in [`index.php`](index.php), which wires the pieces together:
 
 - **`ConfigTransformer`** reads the environment into a `Config` (API key, latitude, longitude + request/caching config).
-- **`MetOffice`** (from [`christianjbrown/php-met-office-weather-datahub-api-lib`](https://github.com/christianjbrown/php-met-office-weather-datahub-api-lib)) provides the hourly forecast API client.
+- **`MetOffice`** (from [`christianjbrown/met-office-weather-datahub-api-sdk`](https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php)) provides the hourly forecast API client.
 - **`DataProvider`** fetches the hourly forecast for the configured location and selects the current hour's step.
 - **`OutputTransformer`** shapes that step into the JSON response, converting wind speeds to mph and emitting the weather code as both its raw number (`type`) and its `WeatherType` enum-name token (`type_name`); display wording is left to the consumer.
-- **`CloudFunction`** (from [`christianjbrown/php-gcp-function-lib`](https://github.com/christianjbrown/php-gcp-function-lib)) handles the HTTP request/response, header/origin gating, and caching headers.
+- **`CloudFunction`** (from [`christianjbrown/cloud-run-function-lib`](https://github.com/christianjbrown/cloud-run-function-lib-php)) handles the HTTP request/response, header/origin gating, and caching headers.
 
 
 

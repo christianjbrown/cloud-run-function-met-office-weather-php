@@ -12,16 +12,16 @@ wires the sibling `christianjbrown/*` libraries together behind an HTTP entry po
 function in `index.php` builds the config, constructs a `MetOffice` client, and returns the PSR-7
 response.
 
-The app consumes several private `dev-main` sibling packages: `php-gcp-function-lib` (the HTTP
-envelope/gating/caching framework), `php-met-office-api-lib` (the read-only Met Office Weather
-DataHub client), `php-user-friendly-exception-lib`, `php-christianbrown-database-orm` (the shared
-Doctrine ORM for the `christianbrown` schema), plus `php-code-quality-scripts` (dev). It runs
+The app consumes several private `dev-main` sibling packages: `cloud-run-function-lib` (the HTTP
+envelope/gating/caching framework), `met-office-weather-datahub-api-sdk` (the read-only Met Office Weather
+DataHub client), `user-friendly-exception`, `christianbrown-database-orm` (the shared
+Doctrine ORM for the `christianbrown` schema), plus `code-quality-scripts` (dev). It runs
 on Google's [Functions Framework](https://github.com/GoogleCloudPlatform/functions-framework-php)
 locally.
 
 **Climate history.** On each request the function also records the observed outdoor temperature and
 humidity to the shared `met_office_weather` table (append-only, one row per origin request), via the
-shared `EntityManagerFactory` + `ClimateMeasurementRecorder` from `php-christianbrown-database-orm`.
+shared `EntityManagerFactory` + `ClimateMeasurementRecorder` from `christianbrown-database-orm`.
 The write is best-effort: `DataProvider` wraps it in a `try/catch` and `error_log()`s failures so a
 database problem never disturbs the response. This is the app's only stateful behaviour; it needs the
 `CHRISTIANBROWN_DATABASE_DSN` env var and (in production) the shared Cloud SQL instance attached over
@@ -54,7 +54,7 @@ at least `MET_OFFICE_WEATHER_API_KEY`, `MET_OFFICE_WEATHER_LATITUDE`, `MET_OFFIC
 `CHRISTIANBROWN_DATABASE_DSN` (a reachable MySQL DSN — e.g. the shared instance via the Cloud SQL
 proxy) and `K_REVISION` set — see `README.md` for the full env-var list.
 
-Style tooling comes from the `christianjbrown/php-code-quality-scripts` dev dependency (`check-style`
+Style tooling comes from the `christianjbrown/code-quality-scripts` dev dependency (`check-style`
 runs **PHP_CodeSniffer 4** with the `ChristianBrown` standard — slevomat sniffs plus PSR/PEAR/Squiz/Generic
 — for linting, while **php-cs-fixer** with `@PhpCsFixer`/`@Symfony` handles formatting); the `bin/php-cs*`
 scripts are thin wrappers over it.
@@ -92,11 +92,11 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `CloudFunction::run($request)`, wrapping **both** in one `try/catch (Throwable)`. Because the MetOffice
   client is built in the factory *before* the `CloudFunction` exists, a failure there would otherwise
   escape as a bare 500; the catch instead `error_log()`s the cause and returns the framework's
-  `JsonErrorResponse` envelope (matching the sibling `php-gcp-function-smartthings-climate` app).
+  `JsonErrorResponse` envelope (matching the sibling `cloud-run-function-smartthings-climate` app).
 - **`CloudFunctionFactoryInterface`** — the seam that defers the wiring so `RequestHandler` can wrap it;
   implemented as an anonymous class in `index.php` (the composition root) and mocked in tests.
 - **`Config`** / **`ConfigInterface`** — a small holder for the API key, latitude, longitude, plus the
-  `FunctionConfigInterface` (from `php-gcp-function-lib`) that drives gating/caching.
+  `FunctionConfigInterface` (from `cloud-run-function-lib`) that drives gating/caching.
 - **`ConfigTransformer`** / **`ConfigTransformerInterface`** — builds a `Config` from the environment
   array. It guards `MET_OFFICE_WEATHER_API_KEY` (`ENV_API_KEY`, presence + `is_string`),
   `MET_OFFICE_WEATHER_LATITUDE` / `MET_OFFICE_WEATHER_LONGITUDE` (`ENV_LATITUDE` / `ENV_LONGITUDE`,
@@ -155,7 +155,7 @@ numeric values.
   (the payload can be a list or a map, so `mixed[]`, not `array<string, mixed>`).
 - **A method that does not use `$this` must be `static`** (called via `self::`) — a stateless helper
   is static. Enforced for private methods by the shared `RequireStaticPrivateMethodRule` PHPStan rule
-  (via `php-code-quality-scripts`' `config/phpstan.neon`); interface/override methods stay instance.
+  (via `code-quality-scripts`' `config/phpstan.neon`); interface/override methods stay instance.
 - **Coverage-driven control flow**: guards are deliberately split into sequential `if`s (rather than a
   single `||`) and optional blocks are unioned as self-contained helpers so each branch is an
   independently reachable path — keep this pattern, it exists to hit 100% path coverage. Avoid

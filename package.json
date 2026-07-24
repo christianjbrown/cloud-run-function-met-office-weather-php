@@ -1,7 +1,7 @@
 {
-  "name": "php-gcp-function-met-office-weather-docs",
+  "name": "cloud-run-function-met-office-weather-php-docs",
   "version": "1.0.0",
-  "description": "Dev-only OpenAPI documentation tooling (Redoc via @redocly/cli) for the Met Office Weather Cloud Function. Not part of the PHP runtime or the GCP deploy.",
+  "description": "Dev-only OpenAPI documentation tooling (Redoc via @redocly/cli) for the Met Office Weather Cloud Run function. Not part of the PHP runtime or the GCP deploy.",
   "private": true,
   "license": "MIT",
   "scripts": {
