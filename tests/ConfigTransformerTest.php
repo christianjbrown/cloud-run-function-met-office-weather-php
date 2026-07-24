@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ChristianBrown\MetOfficeWeather\Tests;
 
-use ChristianBrown\GcpFunction\FunctionConfigInterface;
-use ChristianBrown\GcpFunction\FunctionConfigTransformerInterface;
+use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
+use ChristianBrown\CloudRunFunction\FunctionConfigTransformerInterface;
 use ChristianBrown\MetOfficeWeather\Config;
 use ChristianBrown\MetOfficeWeather\ConfigTransformer;
 use ChristianBrown\MetOfficeWeather\ConfigTransformerInterface;

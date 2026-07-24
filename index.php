@@ -6,12 +6,12 @@ date_default_timezone_set('UTC');
 
 use ChristianBrown\Database\ClimateMeasurementRecorder;
 use ChristianBrown\Database\EntityManagerFactory;
-use ChristianBrown\GcpFunction\CloudFunction;
-use ChristianBrown\GcpFunction\CloudFunctionInterface;
-use ChristianBrown\GcpFunction\FunctionConfigTransformer;
+use ChristianBrown\CloudRunFunction\CloudRunFunction;
+use ChristianBrown\CloudRunFunction\CloudRunFunctionInterface;
+use ChristianBrown\CloudRunFunction\FunctionConfigTransformer;
 use ChristianBrown\MetOffice\Coordinates;
 use ChristianBrown\MetOffice\MetOffice;
-use ChristianBrown\MetOfficeWeather\CloudFunctionFactoryInterface;
+use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\ConfigInterface;
 use ChristianBrown\MetOfficeWeather\ConfigTransformer;
 use ChristianBrown\MetOfficeWeather\DataProvider;
@@ -29,9 +29,9 @@ function run(ServerRequestInterface $request): ResponseInterface
 
     // The MetOffice client construction happens inside the factory (not here), so
     // that RequestHandler::handle() wraps it in the same try/catch as
-    // CloudFunction::run() and a failure there returns the framework's JSON error
+    // CloudRunFunction::run() and a failure there returns the framework's JSON error
     // envelope rather than escaping as a bare 500.
-    $cloudFunctionFactory = new class ($config) implements CloudFunctionFactoryInterface {
+    $cloudFunctionFactory = new class ($config) implements CloudRunFunctionFactoryInterface {
         private ConfigInterface $config;
 
         public function __construct(ConfigInterface $config)
@@ -39,7 +39,7 @@ function run(ServerRequestInterface $request): ResponseInterface
             $this->config = $config;
         }
 
-        public function create(): CloudFunctionInterface
+        public function create(): CloudRunFunctionInterface
         {
             $config = $this->config;
 
@@ -57,7 +57,7 @@ function run(ServerRequestInterface $request): ResponseInterface
             $coordinates = new Coordinates($config->getLatitude(), $config->getLongitude());
             $dataProvider = new DataProvider($hourlyApi, $outputTransformer, $climateMeasurementRecorder, $coordinates);
 
-            return new CloudFunction($dataProvider, $config->getFunctionConfig());
+            return new CloudRunFunction($dataProvider, $config->getFunctionConfig());
         }
     };
 
