@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace ChristianBrown\MetOfficeWeather\Tests;
 
-use ChristianBrown\GcpFunction\CloudFunction;
-use ChristianBrown\GcpFunction\DataProviderInterface as BaseDataProviderInterface;
-use ChristianBrown\GcpFunction\FunctionConfig;
-use ChristianBrown\GcpFunction\FunctionConfigInterface;
+use ChristianBrown\CloudRunFunction\CloudRunFunction;
+use ChristianBrown\CloudRunFunction\DataProviderInterface as BaseDataProviderInterface;
+use ChristianBrown\CloudRunFunction\FunctionConfig;
+use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
 use ChristianBrown\MetOffice\Enums\WeatherType;
 use ChristianBrown\MetOffice\SiteSpecific\Model\HourlyForecastTimeStepInterface;
-use ChristianBrown\MetOfficeWeather\CloudFunctionFactoryInterface;
+use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\DataProviderInterface;
 use ChristianBrown\MetOfficeWeather\OutputTransformer;
 use ChristianBrown\MetOfficeWeather\RequestHandler;
@@ -124,9 +124,9 @@ final class ContractTest extends TestCase
      */
     private function buildResponse(FunctionConfigInterface $config, BaseDataProviderInterface $dataProvider, ServerRequestInterface $request): ResponseInterface
     {
-        $cloudFunction = new CloudFunction($dataProvider, $config);
+        $cloudFunction = new CloudRunFunction($dataProvider, $config);
 
-        $cloudFunctionFactory = self::createStub(CloudFunctionFactoryInterface::class);
+        $cloudFunctionFactory = self::createStub(CloudRunFunctionFactoryInterface::class);
         $cloudFunctionFactory->method('create')
             ->willReturn($cloudFunction);
 

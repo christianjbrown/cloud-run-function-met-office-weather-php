@@ -162,7 +162,7 @@ The entry point is `run()` in [`index.php`](index.php), which wires the pieces t
 - **`MetOffice`** (from [`christianjbrown/met-office-weather-datahub-api-sdk`](https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php)) provides the hourly forecast API client.
 - **`DataProvider`** fetches the hourly forecast for the configured location and selects the current hour's step.
 - **`OutputTransformer`** shapes that step into the JSON response, converting wind speeds to mph and emitting the weather code as both its raw number (`type`) and its `WeatherType` enum-name token (`type_name`); display wording is left to the consumer.
-- **`CloudFunction`** (from [`christianjbrown/cloud-run-function-lib`](https://github.com/christianjbrown/cloud-run-function-lib-php)) handles the HTTP request/response, header/origin gating, and caching headers.
+- **`CloudRunFunction`** (from [`christianjbrown/cloud-run-function-lib`](https://github.com/christianjbrown/cloud-run-function-lib-php)) handles the HTTP request/response, header/origin gating, and caching headers.
 
 
 
