@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ChristianBrown\MetOfficeWeather\Tests;
 
-use ChristianBrown\GcpFunction\FunctionConfigInterface;
+use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
 use ChristianBrown\MetOfficeWeather\Config;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\Exception;
