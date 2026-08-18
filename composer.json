@@ -24,7 +24,7 @@
         "christianjbrown/api-client": "dev-main",
         "christianjbrown/christianbrown-database-orm": "dev-main",
         "christianjbrown/cloud-run-function-lib": "dev-main",
-        "christianjbrown/met-office-weather-datahub-api-sdk": "dev-main",
+        "christianjbrown/met-office-weather-datahub-api-sdk": "^1.0",
         "christianjbrown/user-friendly-exception": "dev-main",
         "google/cloud-functions-framework": "^1.1",
         "psr/http-client": "^1.0"
