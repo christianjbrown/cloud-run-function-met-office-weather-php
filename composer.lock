@@ -344,16 +344,16 @@
         },
         {
             "name": "christianjbrown/met-office-weather-datahub-api-sdk",
-            "version": "v1.0.0",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php.git",
-                "reference": "a59a404eed42247196e1e3ae6b25112d673ffb70"
+                "reference": "cc71a08026ec70c983aa0c5e61882e970a4db72e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/christianjbrown/met-office-weather-datahub-api-sdk-php/zipball/a59a404eed42247196e1e3ae6b25112d673ffb70",
-                "reference": "a59a404eed42247196e1e3ae6b25112d673ffb70",
+                "url": "https://api.github.com/repos/christianjbrown/met-office-weather-datahub-api-sdk-php/zipball/cc71a08026ec70c983aa0c5e61882e970a4db72e",
+                "reference": "cc71a08026ec70c983aa0c5e61882e970a4db72e",
                 "shasum": ""
             },
             "require": {
@@ -394,9 +394,9 @@
             ],
             "support": {
                 "issues": "https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php/issues",
-                "source": "https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php/tree/v1.0.0"
+                "source": "https://github.com/christianjbrown/met-office-weather-datahub-api-sdk-php/tree/v1.1.0"
             },
-            "time": "2026-09-28T11:58:41+00:00"
+            "time": "2026-09-28T15:45:07+00:00"
         },
         {
             "name": "christianjbrown/user-friendly-exception",
