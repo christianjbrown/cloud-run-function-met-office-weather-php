@@ -148,7 +148,7 @@ npm run docs:lint      # lint openapi.yaml
 ## :rocket: CI & deployment
 
 - **`.github/workflows/ci.yml`** runs on pushes and pull requests to `main`: `composer install`, PHPCS, PHPStan, PHPUnit with a 100% coverage floor on every metric, and an OpenAPI spec-drift check.
-- **`.github/workflows/deploy.yml`** runs on push to `main`: deploys the Cloud Run function (`php85` runtime, `europe-west2`, function name `get-met-office-weather`) via Workload Identity Federation, grants public (`allUsers`) invoker access on the underlying Cloud Run service, smoke-tests the deployed URL, then purges the Fastly edge cache.
+- **`.github/workflows/deploy.yml`** runs after CI passes on `main` (and not for commits that only change docs): deploys the Cloud Run function (`php85` runtime, `europe-west2`, function name `get-met-office-weather`) via Workload Identity Federation, grants public (`allUsers`) invoker access on the underlying Cloud Run service, smoke-tests the deployed URL, then purges the Fastly edge cache.
 
 The Met Office API key, latitude, longitude, and request-gating values are supplied at deploy time from Google Secret Manager (see `deploy.yml`).
 
