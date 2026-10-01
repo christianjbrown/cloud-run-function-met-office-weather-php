@@ -4103,16 +4103,16 @@
     "packages-dev": [
         {
             "name": "christianjbrown/code-quality-scripts",
-            "version": "v1.1.1",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/christianjbrown/code-quality-scripts-php.git",
-                "reference": "945ea4854a82aaa6ef1c8da4a44528c170aadcce"
+                "reference": "c5340bfdd4ec401dff90055f05b0d11b7aae3fff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/christianjbrown/code-quality-scripts-php/zipball/945ea4854a82aaa6ef1c8da4a44528c170aadcce",
-                "reference": "945ea4854a82aaa6ef1c8da4a44528c170aadcce",
+                "url": "https://api.github.com/repos/christianjbrown/code-quality-scripts-php/zipball/c5340bfdd4ec401dff90055f05b0d11b7aae3fff",
+                "reference": "c5340bfdd4ec401dff90055f05b0d11b7aae3fff",
                 "shasum": ""
             },
             "require": {
@@ -4139,6 +4139,7 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
+                    "ChristianBrown\\CodeQualityScripts\\Console\\": "src/Console/",
                     "ChristianBrown\\CodeQualityScripts\\PhpStan\\": "src/PhpStan/",
                     "ChristianBrown\\CodeQualityScripts\\Coverage\\": "src/Coverage/",
                     "ChristianBrown\\CodeQualityScripts\\Changelog\\": "src/Changelog/"
@@ -4163,9 +4164,9 @@
             ],
             "support": {
                 "issues": "https://github.com/christianjbrown/code-quality-scripts-php/issues",
-                "source": "https://github.com/christianjbrown/code-quality-scripts-php/tree/v1.1.1"
+                "source": "https://github.com/christianjbrown/code-quality-scripts-php/tree/v1.2.0"
             },
-            "time": "2026-09-30T23:54:19+00:00"
+            "time": "2026-10-01T00:53:11+00:00"
         },
         {
             "name": "clue/ndjson-react",
