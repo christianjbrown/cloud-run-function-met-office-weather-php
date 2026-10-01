@@ -11,7 +11,7 @@ use ChristianBrown\MetOffice\SiteSpecific\Api\HourlyForecastApiInterface;
 use ChristianBrown\MetOffice\SiteSpecific\Model\ForecastTimeStepInterface;
 use ChristianBrown\MetOffice\SiteSpecific\Model\HourlyForecastTimeStepInterface;
 use ChristianBrown\UserFriendlyException\UserFriendlyException;
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Throwable;
 
@@ -20,24 +20,23 @@ use function array_first;
 use function array_last;
 use function array_values;
 use function error_log;
-use function time;
 use function usort;
 
 final class DataProvider implements DataProviderInterface
 {
     private ClimateMeasurementRecorderInterface $climateMeasurementRecorder;
+    private ClockInterface $clock;
     private CoordinatesInterface $coordinates;
     private HourlyForecastApiInterface $hourlyForecastApi;
-    private int $now;
     private OutputTransformerInterface $outputTransformer;
 
-    public function __construct(HourlyForecastApiInterface $hourlyForecastApi, OutputTransformerInterface $outputTransformer, ClimateMeasurementRecorderInterface $climateMeasurementRecorder, CoordinatesInterface $coordinates)
+    public function __construct(HourlyForecastApiInterface $hourlyForecastApi, OutputTransformerInterface $outputTransformer, ClimateMeasurementRecorderInterface $climateMeasurementRecorder, CoordinatesInterface $coordinates, ClockInterface $clock)
     {
         $this->hourlyForecastApi = $hourlyForecastApi;
         $this->outputTransformer = $outputTransformer;
         $this->climateMeasurementRecorder = $climateMeasurementRecorder;
         $this->coordinates = $coordinates;
-        $this->now = time();
+        $this->clock = $clock;
     }
 
     /**
@@ -82,7 +81,7 @@ final class DataProvider implements DataProviderInterface
         try {
             $this->climateMeasurementRecorder->record(
                 (new MetOfficeWeather())
-                    ->setRecordedAt(new DateTimeImmutable())
+                    ->setRecordedAt($this->clock->now())
                     ->setTemperature($temperature)
                     ->setHumidity($humidity)
             );
@@ -100,12 +99,13 @@ final class DataProvider implements DataProviderInterface
      */
     private function selectCurrentStep(array $timeSteps): ForecastTimeStepInterface
     {
+        $now = $this->clock->now()->getTimestamp();
         $sorted = self::sortByTime($timeSteps);
 
         $past = array_values(
             array_filter(
                 $sorted,
-                fn (ForecastTimeStepInterface $step): bool => $step->getTime() <= $this->now
+                static fn (ForecastTimeStepInterface $step): bool => $step->getTime() <= $now
             )
         );
 

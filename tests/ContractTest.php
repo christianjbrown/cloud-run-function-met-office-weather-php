@@ -4,16 +4,35 @@ declare(strict_types=1);
 
 namespace ChristianBrown\MetOfficeWeather\Tests;
 
-use ChristianBrown\CloudRunFunction\CloudRunFunction;
+use ChristianBrown\CloudRunFunction\AllowOriginResolver;
+use ChristianBrown\CloudRunFunction\CacheHeaderBuilder;
+use ChristianBrown\CloudRunFunction\CloudRunFunctionFactory;
+use ChristianBrown\CloudRunFunction\CorsHeaderBuilder;
 use ChristianBrown\CloudRunFunction\DataProviderInterface as BaseDataProviderInterface;
 use ChristianBrown\CloudRunFunction\FunctionConfig;
 use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
+use ChristianBrown\CloudRunFunction\JsonResponseFactory;
+use ChristianBrown\CloudRunFunction\ResponseBodyBuilder;
 use ChristianBrown\MetOffice\Enums\WeatherType;
 use ChristianBrown\MetOffice\SiteSpecific\Model\HourlyForecastTimeStepInterface;
 use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\DataProviderInterface;
+use ChristianBrown\MetOfficeWeather\Field\DewPointFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\FeelsLikeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\HumidityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PrecipitationFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PressureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\TemperatureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\UvIndexFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\VisibilityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeNameFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindDirectionFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindGustFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindSpeedFieldMapper;
 use ChristianBrown\MetOfficeWeather\OutputTransformer;
 use ChristianBrown\MetOfficeWeather\RequestHandler;
+use ChristianBrown\MetOfficeWeather\Tests\Field\DefaultFieldMappers;
 use ChristianBrown\UserFriendlyException\UserFriendlyException;
 use GuzzleHttp\Psr7\ServerRequest;
 use League\OpenAPIValidation\PSR7\OperationAddress;
@@ -25,6 +44,7 @@ use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Clock\MockClock;
 
 use function dirname;
 
@@ -36,6 +56,19 @@ use function dirname;
  */
 #[CoversClass(RequestHandler::class)]
 #[UsesClass(OutputTransformer::class)]
+#[UsesClass(DewPointFieldMapper::class)]
+#[UsesClass(FeelsLikeFieldMapper::class)]
+#[UsesClass(HumidityFieldMapper::class)]
+#[UsesClass(PrecipitationFieldMapper::class)]
+#[UsesClass(PressureFieldMapper::class)]
+#[UsesClass(TemperatureFieldMapper::class)]
+#[UsesClass(UvIndexFieldMapper::class)]
+#[UsesClass(VisibilityFieldMapper::class)]
+#[UsesClass(WeatherTypeFieldMapper::class)]
+#[UsesClass(WeatherTypeNameFieldMapper::class)]
+#[UsesClass(WindDirectionFieldMapper::class)]
+#[UsesClass(WindGustFieldMapper::class)]
+#[UsesClass(WindSpeedFieldMapper::class)]
 final class ContractTest extends TestCase
 {
     private const string ORIGIN = 'https://example.com';
@@ -71,7 +104,7 @@ final class ContractTest extends TestCase
     public function testSuccessFullPayloadMatchesContract(): void
     {
         $step = $this->createStep(18.7, 17.2, 65.5, 20, 3, 30000, 10.0, 12.0, 90, WeatherType::SUNNY_DAY, 101320, 12.3);
-        $data = (new OutputTransformer())->transform($step);
+        $data = (new OutputTransformer(DefaultFieldMappers::create()))->transform($step);
 
         $dataProvider = self::createStub(BaseDataProviderInterface::class);
         $dataProvider->method('getData')
@@ -90,7 +123,7 @@ final class ContractTest extends TestCase
     public function testSuccessMinimalPayloadMatchesContract(): void
     {
         $step = $this->createStep(null, null, null, null, null, null, null, null, null, null);
-        $data = (new OutputTransformer())->transform($step);
+        $data = (new OutputTransformer(DefaultFieldMappers::create()))->transform($step);
 
         $dataProvider = self::createStub(BaseDataProviderInterface::class);
         $dataProvider->method('getData')
@@ -108,8 +141,8 @@ final class ContractTest extends TestCase
     public function testUnauthorizedResponseMatchesContract(): void
     {
         $config = (new FunctionConfig(self::REVISION))
-            ->setRequiredHeaderKey('X-Request-Auth')
-            ->setRequiredHeaderValue('secret');
+            ->withRequiredHeaderKey('X-Request-Auth')
+            ->withRequiredHeaderValue('secret');
 
         $dataProvider = self::createStub(BaseDataProviderInterface::class);
 
@@ -124,13 +157,13 @@ final class ContractTest extends TestCase
      */
     private function buildResponse(FunctionConfigInterface $config, BaseDataProviderInterface $dataProvider, ServerRequestInterface $request): ResponseInterface
     {
-        $cloudFunction = new CloudRunFunction($dataProvider, $config);
+        $cloudFunction = (new CloudRunFunctionFactory())->create($dataProvider, $config);
 
         $cloudFunctionFactory = self::createStub(CloudRunFunctionFactoryInterface::class);
         $cloudFunctionFactory->method('create')
             ->willReturn($cloudFunction);
 
-        $requestHandler = new RequestHandler($cloudFunctionFactory, $config);
+        $requestHandler = new RequestHandler($cloudFunctionFactory, $config, new JsonResponseFactory(new ResponseBodyBuilder(), new CorsHeaderBuilder(new AllowOriginResolver()), new CacheHeaderBuilder(), new MockClock()));
 
         return $requestHandler->handle($request);
     }
@@ -174,10 +207,10 @@ final class ContractTest extends TestCase
     private function unauthenticatedConfig(): FunctionConfigInterface
     {
         return (new FunctionConfig(self::REVISION))
-            ->setAllowUnauthenticated(true)
-            ->setRequiredOrigin(self::ORIGIN)
-            ->setUseCacheTtl(900)
-            ->setUseCacheButRequestTtl(600)
-            ->setUseCacheIfErrorTtl(3600);
+            ->withAllowUnauthenticated(true)
+            ->withRequiredOrigin(self::ORIGIN)
+            ->withUseCacheTtl(900)
+            ->withUseCacheButRequestTtl(600)
+            ->withUseCacheIfErrorTtl(3600);
     }
 }

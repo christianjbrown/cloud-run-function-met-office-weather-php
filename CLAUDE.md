@@ -81,10 +81,10 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
 
 - **`index.php`** — defines `run(ServerRequestInterface): ResponseInterface`, the Functions Framework
   target, and sets `date_default_timezone_set('UTC')` at the top. It is a thin **composition root
-  only**: it reads `getenv()`, builds a `Config` via `ConfigTransformer`, then constructs an anonymous
-  `CloudRunFunctionFactoryInterface` whose `create()` holds the wiring (the `MetOffice` facade + its hourly
-  forecast client, the `DataProvider` and `OutputTransformer`, handed to a `CloudRunFunction`). It passes that factory + the `FunctionConfig`
-  to a `RequestHandler` and returns `handle($request)`. All the `new` wiring lives here (outside the
+  only**: it reads `getenv()`, builds a `Config` via `ConfigTransformer` (given `CloudRunFunctionFactory::createConfigTransformer()` from cloud-run-function-lib 2), then constructs an anonymous
+  `CloudRunFunctionFactoryInterface` whose `create()` holds the wiring (the SDK's `(new MetOfficeFactory())->create()` facade + its hourly
+  forecast client, the field mappers, the `OutputTransformer`, a `NativeClock` and the `DataProvider`, handed to `CloudRunFunctionFactory::create()`). It passes that factory, the `FunctionConfig` and a
+  `JsonResponseFactory` (built here) to a `RequestHandler` and returns `handle($request)`. All the `new` wiring lives here (outside the
   namespace, so it is excluded from coverage/PHPStan/phpcs, which only scan `src`/`tests`); the testable
   orchestration lives in `src`.
 - **`RequestHandler`** / **`RequestHandlerInterface`** — the testable entry-point orchestration.
@@ -92,7 +92,8 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `CloudRunFunction::run($request)`, wrapping **both** in one `try/catch (Throwable)`. Because the MetOffice
   client is built in the factory *before* the `CloudRunFunction` exists, a failure there would otherwise
   escape as a bare 500; the catch instead `error_log()`s the cause and returns the framework's
-  `JsonErrorResponse` envelope (matching the sibling `cloud-run-function-smartthings-climate` app).
+  JSON error envelope, built by the injected `JsonResponseFactoryInterface::error()` (lib 2 removed
+  `JsonErrorResponse`).
 - **`CloudRunFunctionFactoryInterface`** — the seam that defers the wiring so `RequestHandler` can wrap it;
   implemented as an anonymous class in `index.php` (the composition root) and mocked in tests.
 - **`Config`** / **`ConfigInterface`** — a small holder for the API key, latitude, longitude, plus the
@@ -102,10 +103,11 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `MET_OFFICE_WEATHER_LATITUDE` / `MET_OFFICE_WEATHER_LONGITUDE` (`ENV_LATITUDE` / `ENV_LONGITUDE`,
   `isset` + `is_numeric`, then `(float)` cast — `isset` not `empty` so a legitimate `0` survives) and
   `CHRISTIANBROWN_DATABASE_DSN` (`ENV_DATABASE_DSN`, presence + `is_string`) with sequential checks, and
-  delegates the rest of the env to the injected `FunctionConfigTransformer`.
+  delegates the rest of the env to the injected `FunctionConfigTransformerInterface`.
 - **`DataProvider`** — implements the lib's `DataProviderInterface`. `getData()` fetches the hourly
   forecast for the configured lat/lon, then selects the **current step**: the step with the greatest
-  `getTime()` that is at or before `time()` (captured once in the constructor as `$this->now`),
+  `getTime()` that is at or before now (read from the injected PSR-20 `ClockInterface` on every
+  request, never cached, so a warm instance does not go stale),
   falling back to the earliest step when every step is in the future. It throws a
   `UserFriendlyException` (`ERROR_NO_FORECAST`) when there are no steps, or when the selected step is
   not a `HourlyForecastTimeStepInterface`. Selection is done with `usort` + `array_filter` +
@@ -115,10 +117,11 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `OutputTransformer`.
 - **`OutputTransformer`** / **`OutputTransformerInterface`** — shapes one `HourlyForecastTimeStep`
   into the response array. The `valid_from` / `valid_from_iso8601` / `valid_to` / `valid_to_iso8601`
-  window fields are always emitted; every other field (temp, feels-like, humidity, precipitation,
-  UV, visibility, wind speed/gust/direction, weather `type`/`type_name`) is unioned via its own
-  self-contained private helper so its presence is an independent path. Wind speeds are converted
-  m/s → mph via `METRES_PER_SECOND_TO_MPH` at full precision (the website rounds for display); the
+  window fields are always emitted; every other field comes from an injected, ordered iterable of
+  `Field\OutputFieldMapperInterface` (one small `final` class per output field in `src/Field/`, each
+  returning its keys or `[]` when the step has no value). The registration order in `index.php` is the
+  key order of the JSON. A new field is a new mapper class plus one line in `index.php`. Wind speeds are
+  converted m/s → mph via `METRES_PER_SECOND_TO_MPH` at full precision (the website rounds for display); the
   window length is `WINDOW_SECONDS` (3600). Weather type is emitted as the raw code (`type`, from
   `WeatherType->value`) and a stable enum-name token (`type_name`, from `WeatherType->name`) — display
   wording (name/emoji) is **not** produced here; the consuming website owns that (locale-sensitive)
@@ -140,7 +143,8 @@ numeric values.
 
 - `declare(strict_types=1);` on every file, immediately after `<?php`.
 - **Every concrete class is `final` and implements a matching `...Interface`** in the same namespace
-  (`DataProvider`/`DataProviderInterface`, `OutputTransformer`/`OutputTransformerInterface`). No
+  (`DataProvider`/`DataProviderInterface`, `OutputTransformer`/`OutputTransformerInterface`; the field
+  mappers all implement the one `OutputFieldMapperInterface`). No
   abstract base classes — composition over inheritance.
 - **Constants live on the interface, not the class**: env keys (`ENV_*`), response body keys
   (`KEY_*`), the mph factor / window constants, and error messages (`ERROR_*`) — all typed constants.
@@ -168,8 +172,8 @@ The `phpunit.xml` config is strict (`requireCoverageMetadata`, `beStrictAboutCov
 
 - **Coverage must stay at 100%** — line, path, method/function, and branch. Every code path, including
   each defensive guard, the current-step vs earliest-fallback branches in `DataProvider`, and every
-  optional-field block in `OutputTransformer` (present and absent, plus the weather-type name/emoji
-  present/absent sub-branches), must be exercised. **Always run `composer test` and check the coverage
+  field mapper in `src/Field/` (value present and absent), and `OutputTransformer` with no, one and
+  several mappers, must be exercised. **Always run `composer test` and check the coverage
   report** before finishing — it prints a text summary to stdout and writes HTML to
   `.phpunit.cache/code-coverage-html/index.html`. New code without full coverage is not done.
 - **Every test class needs a `#[CoversClass(...)]` attribute** (may list more than one — e.g.

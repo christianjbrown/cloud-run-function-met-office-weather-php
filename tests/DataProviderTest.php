@@ -21,23 +21,25 @@ use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
+use Symfony\Component\Clock\MockClock;
 
 use function ini_set;
 use function sys_get_temp_dir;
 use function tempnam;
-use function time;
 use function unlink;
 
 #[CoversClass(DataProvider::class)]
 final class DataProviderTest extends TestCase
 {
+    private const int NOW = 1752580800;
+
     /**
      * @throws Exception
      */
     public function testClimateWriteFailureIsSwallowed(): void
     {
         $request = self::createStub(ServerRequestInterface::class);
-        $now = time();
+        $now = self::NOW;
 
         $step = $this->createHourlyStep($now - 3600, 12.3, 81.0);
         $forecast = $this->createForecast([$step]);
@@ -54,7 +56,7 @@ final class DataProviderTest extends TestCase
         $climateMeasurementRecorder->method('record')
             ->willThrowException(new RuntimeException('test-database-failure'));
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, $climateMeasurementRecorder, new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, $climateMeasurementRecorder, new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         // The write failure is logged via error_log() for Cloud Logging; divert it
         // to a temp file so the strict-output check does not see it as unexpected
@@ -78,7 +80,7 @@ final class DataProviderTest extends TestCase
     public function testFallsBackToEarliestWhenAllStepsAreInTheFuture(): void
     {
         $request = self::createStub(ServerRequestInterface::class);
-        $now = time();
+        $now = self::NOW;
 
         $earliest = $this->createHourlyStep($now + 3600);
         $latest = $this->createHourlyStep($now + 7200);
@@ -96,9 +98,39 @@ final class DataProviderTest extends TestCase
             ->with($earliest)
             ->willReturn(['test-output']);
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         self::assertSame(['test-output'], $dataProvider->getData($request));
+    }
+
+    /**
+     * A warm instance serves many requests, so "now" must be read per request.
+     *
+     * @throws Exception
+     */
+    public function testReadsNowOnEveryRequest(): void
+    {
+        $request = self::createStub(ServerRequestInterface::class);
+        $first = $this->createHourlyStep(self::NOW);
+        $second = $this->createHourlyStep(self::NOW + 3600);
+
+        $hourlyForecastApi = self::createStub(HourlyForecastApiInterface::class);
+        $hourlyForecastApi->method('getForecast')
+            ->willReturn($this->createForecast([$first, $second]));
+
+        $outputTransformer = self::createMock(OutputTransformerInterface::class);
+        $outputTransformer->expects(self::exactly(2))
+            ->method('transform')
+            ->willReturnCallback(static fn (HourlyForecastTimeStepInterface $step): array => [$step->getTime()]);
+
+        $clock = new MockClock('@'.self::NOW);
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18), $clock);
+
+        self::assertSame([self::NOW], $dataProvider->getData($request));
+
+        $clock->sleep(3600);
+
+        self::assertSame([self::NOW + 3600], $dataProvider->getData($request));
     }
 
     /**
@@ -107,7 +139,7 @@ final class DataProviderTest extends TestCase
     public function testRecordsSelectedStepClimate(): void
     {
         $request = self::createStub(ServerRequestInterface::class);
-        $now = time();
+        $now = self::NOW;
 
         $step = $this->createHourlyStep($now - 3600, 12.3, 81.0);
         $forecast = $this->createForecast([$step]);
@@ -135,7 +167,7 @@ final class DataProviderTest extends TestCase
                 )
             );
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, $climateMeasurementRecorder, new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, $climateMeasurementRecorder, new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         self::assertSame(['test-output'], $dataProvider->getData($request));
     }
@@ -146,7 +178,7 @@ final class DataProviderTest extends TestCase
     public function testSelectsCurrentStep(): void
     {
         $request = self::createStub(ServerRequestInterface::class);
-        $now = time();
+        $now = self::NOW;
 
         $olderPast = $this->createHourlyStep($now - 7200);
         $currentPast = $this->createHourlyStep($now - 3600);
@@ -167,7 +199,7 @@ final class DataProviderTest extends TestCase
             ->with($currentPast)
             ->willReturn(['test-output']);
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         self::assertSame(['test-output'], $dataProvider->getData($request));
     }
@@ -187,7 +219,7 @@ final class DataProviderTest extends TestCase
 
         $outputTransformer = self::createStub(OutputTransformerInterface::class);
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         $this->expectException(UserFriendlyException::class);
         $this->expectExceptionMessage(DataProviderInterface::ERROR_NO_FORECAST);
@@ -201,7 +233,7 @@ final class DataProviderTest extends TestCase
     public function testThrowsWhenSelectedStepIsNotHourly(): void
     {
         $request = self::createStub(ServerRequestInterface::class);
-        $now = time();
+        $now = self::NOW;
 
         $step = self::createStub(ForecastTimeStepInterface::class);
         $step->method('getTime')
@@ -215,7 +247,7 @@ final class DataProviderTest extends TestCase
 
         $outputTransformer = self::createStub(OutputTransformerInterface::class);
 
-        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18));
+        $dataProvider = new DataProvider($hourlyForecastApi, $outputTransformer, self::createStub(ClimateMeasurementRecorderInterface::class), new Coordinates(51.5, -0.18), new MockClock('@'.self::NOW));
 
         $this->expectException(UserFriendlyException::class);
         $this->expectExceptionMessage(DataProviderInterface::ERROR_NO_FORECAST);
