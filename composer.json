@@ -27,7 +27,9 @@
         "christianjbrown/met-office-weather-datahub-api-sdk": "^1.0",
         "christianjbrown/user-friendly-exception": "^1.0",
         "google/cloud-functions-framework": "^1.1",
-        "psr/http-client": "^1.0"
+        "psr/clock": "^1.0",
+        "psr/http-client": "^1.0",
+        "symfony/clock": "^8.0"
     },
     "require-dev": {
         "christianjbrown/code-quality-scripts": "^1.0",
