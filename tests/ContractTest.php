@@ -12,8 +12,22 @@ use ChristianBrown\MetOffice\Enums\WeatherType;
 use ChristianBrown\MetOffice\SiteSpecific\Model\HourlyForecastTimeStepInterface;
 use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\DataProviderInterface;
+use ChristianBrown\MetOfficeWeather\Field\DewPointFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\FeelsLikeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\HumidityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PrecipitationFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PressureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\TemperatureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\UvIndexFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\VisibilityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeNameFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindDirectionFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindGustFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindSpeedFieldMapper;
 use ChristianBrown\MetOfficeWeather\OutputTransformer;
 use ChristianBrown\MetOfficeWeather\RequestHandler;
+use ChristianBrown\MetOfficeWeather\Tests\Field\DefaultFieldMappers;
 use ChristianBrown\UserFriendlyException\UserFriendlyException;
 use GuzzleHttp\Psr7\ServerRequest;
 use League\OpenAPIValidation\PSR7\OperationAddress;
@@ -36,6 +50,19 @@ use function dirname;
  */
 #[CoversClass(RequestHandler::class)]
 #[UsesClass(OutputTransformer::class)]
+#[UsesClass(DewPointFieldMapper::class)]
+#[UsesClass(FeelsLikeFieldMapper::class)]
+#[UsesClass(HumidityFieldMapper::class)]
+#[UsesClass(PrecipitationFieldMapper::class)]
+#[UsesClass(PressureFieldMapper::class)]
+#[UsesClass(TemperatureFieldMapper::class)]
+#[UsesClass(UvIndexFieldMapper::class)]
+#[UsesClass(VisibilityFieldMapper::class)]
+#[UsesClass(WeatherTypeFieldMapper::class)]
+#[UsesClass(WeatherTypeNameFieldMapper::class)]
+#[UsesClass(WindDirectionFieldMapper::class)]
+#[UsesClass(WindGustFieldMapper::class)]
+#[UsesClass(WindSpeedFieldMapper::class)]
 final class ContractTest extends TestCase
 {
     private const string ORIGIN = 'https://example.com';
@@ -71,7 +98,7 @@ final class ContractTest extends TestCase
     public function testSuccessFullPayloadMatchesContract(): void
     {
         $step = $this->createStep(18.7, 17.2, 65.5, 20, 3, 30000, 10.0, 12.0, 90, WeatherType::SUNNY_DAY, 101320, 12.3);
-        $data = (new OutputTransformer())->transform($step);
+        $data = (new OutputTransformer(DefaultFieldMappers::create()))->transform($step);
 
         $dataProvider = self::createStub(BaseDataProviderInterface::class);
         $dataProvider->method('getData')
@@ -90,7 +117,7 @@ final class ContractTest extends TestCase
     public function testSuccessMinimalPayloadMatchesContract(): void
     {
         $step = $this->createStep(null, null, null, null, null, null, null, null, null, null);
-        $data = (new OutputTransformer())->transform($step);
+        $data = (new OutputTransformer(DefaultFieldMappers::create()))->transform($step);
 
         $dataProvider = self::createStub(BaseDataProviderInterface::class);
         $dataProvider->method('getData')

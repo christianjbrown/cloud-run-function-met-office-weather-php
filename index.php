@@ -15,6 +15,19 @@ use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\ConfigInterface;
 use ChristianBrown\MetOfficeWeather\ConfigTransformer;
 use ChristianBrown\MetOfficeWeather\DataProvider;
+use ChristianBrown\MetOfficeWeather\Field\DewPointFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\FeelsLikeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\HumidityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PrecipitationFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\PressureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\TemperatureFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\UvIndexFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\VisibilityFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WeatherTypeNameFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindDirectionFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindGustFieldMapper;
+use ChristianBrown\MetOfficeWeather\Field\WindSpeedFieldMapper;
 use ChristianBrown\MetOfficeWeather\OutputTransformer;
 use ChristianBrown\MetOfficeWeather\RequestHandler;
 use Psr\Http\Message\ResponseInterface;
@@ -47,7 +60,23 @@ function run(ServerRequestInterface $request): ResponseInterface
             $metOffice = new MetOffice();
             $hourlyApi = $metOffice->siteSpecific($config->getApiKey())->getHourlyForecastApi();
 
-            $outputTransformer = new OutputTransformer();
+            // One mapper per output field; the order here is the key order of the
+            // JSON response. A new field is a new mapper class plus one line here.
+            $outputTransformer = new OutputTransformer([
+                new TemperatureFieldMapper(),
+                new FeelsLikeFieldMapper(),
+                new HumidityFieldMapper(),
+                new PrecipitationFieldMapper(),
+                new UvIndexFieldMapper(),
+                new VisibilityFieldMapper(),
+                new PressureFieldMapper(),
+                new DewPointFieldMapper(),
+                new WindSpeedFieldMapper(),
+                new WindGustFieldMapper(),
+                new WindDirectionFieldMapper(),
+                new WeatherTypeFieldMapper(),
+                new WeatherTypeNameFieldMapper(),
+            ]);
 
             // Record each observed reading to the shared climate-history table.
             // The write is best-effort — DataProvider isolates it so a failure
