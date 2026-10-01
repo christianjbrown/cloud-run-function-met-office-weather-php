@@ -6,11 +6,15 @@ date_default_timezone_set('UTC');
 
 use ChristianBrown\Database\ClimateMeasurementRecorder;
 use ChristianBrown\Database\EntityManagerFactory;
-use ChristianBrown\CloudRunFunction\CloudRunFunction;
+use ChristianBrown\CloudRunFunction\AllowOriginResolver;
+use ChristianBrown\CloudRunFunction\CacheHeaderBuilder;
+use ChristianBrown\CloudRunFunction\CloudRunFunctionFactory;
 use ChristianBrown\CloudRunFunction\CloudRunFunctionInterface;
-use ChristianBrown\CloudRunFunction\FunctionConfigTransformer;
+use ChristianBrown\CloudRunFunction\CorsHeaderBuilder;
+use ChristianBrown\CloudRunFunction\JsonResponseFactory;
+use ChristianBrown\CloudRunFunction\ResponseBodyBuilder;
 use ChristianBrown\MetOffice\Coordinates;
-use ChristianBrown\MetOffice\MetOffice;
+use ChristianBrown\MetOffice\MetOfficeFactory;
 use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\ConfigInterface;
 use ChristianBrown\MetOfficeWeather\ConfigTransformer;
@@ -37,27 +41,29 @@ use Symfony\Component\Clock\NativeClock;
 function run(ServerRequestInterface $request): ResponseInterface
 {
     $env = getenv();
-    $functionConfigTransformer = new FunctionConfigTransformer();
-    $configTransformer = new ConfigTransformer($functionConfigTransformer);
+    $cloudRunFunctionFactory = new CloudRunFunctionFactory();
+    $configTransformer = new ConfigTransformer($cloudRunFunctionFactory->createConfigTransformer());
     $config = $configTransformer->transform($env);
 
     // The MetOffice client construction happens inside the factory (not here), so
     // that RequestHandler::handle() wraps it in the same try/catch as
     // CloudRunFunction::run() and a failure there returns the framework's JSON error
     // envelope rather than escaping as a bare 500.
-    $cloudFunctionFactory = new class ($config) implements CloudRunFunctionFactoryInterface {
+    $cloudFunctionFactory = new class ($config, $cloudRunFunctionFactory) implements CloudRunFunctionFactoryInterface {
         private ConfigInterface $config;
+        private CloudRunFunctionFactory $cloudRunFunctionFactory;
 
-        public function __construct(ConfigInterface $config)
+        public function __construct(ConfigInterface $config, CloudRunFunctionFactory $cloudRunFunctionFactory)
         {
             $this->config = $config;
+            $this->cloudRunFunctionFactory = $cloudRunFunctionFactory;
         }
 
         public function create(): CloudRunFunctionInterface
         {
             $config = $this->config;
 
-            $metOffice = new MetOffice();
+            $metOffice = (new MetOfficeFactory())->create();
             $hourlyApi = $metOffice->siteSpecific($config->getApiKey())->getHourlyForecastApi();
 
             // One mapper per output field; the order here is the key order of the
@@ -87,11 +93,17 @@ function run(ServerRequestInterface $request): ResponseInterface
             $coordinates = new Coordinates($config->getLatitude(), $config->getLongitude());
             $dataProvider = new DataProvider($hourlyApi, $outputTransformer, $climateMeasurementRecorder, $coordinates, new NativeClock());
 
-            return new CloudRunFunction($dataProvider, $config->getFunctionConfig());
+            return $this->cloudRunFunctionFactory->create($dataProvider, $config->getFunctionConfig());
         }
     };
 
-    $requestHandler = new RequestHandler($cloudFunctionFactory, $config->getFunctionConfig());
+    $jsonResponseFactory = new JsonResponseFactory(
+        new ResponseBodyBuilder(),
+        new CorsHeaderBuilder(new AllowOriginResolver()),
+        new CacheHeaderBuilder(),
+        new NativeClock(),
+    );
+    $requestHandler = new RequestHandler($cloudFunctionFactory, $config->getFunctionConfig(), $jsonResponseFactory);
 
     return $requestHandler->handle($request);
 }
