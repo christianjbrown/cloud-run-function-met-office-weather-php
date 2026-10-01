@@ -19,6 +19,7 @@ use ChristianBrown\MetOfficeWeather\OutputTransformer;
 use ChristianBrown\MetOfficeWeather\RequestHandler;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Clock\NativeClock;
 
 function run(ServerRequestInterface $request): ResponseInterface
 {
@@ -55,7 +56,7 @@ function run(ServerRequestInterface $request): ResponseInterface
             $climateMeasurementRecorder = new ClimateMeasurementRecorder($entityManager);
 
             $coordinates = new Coordinates($config->getLatitude(), $config->getLongitude());
-            $dataProvider = new DataProvider($hourlyApi, $outputTransformer, $climateMeasurementRecorder, $coordinates);
+            $dataProvider = new DataProvider($hourlyApi, $outputTransformer, $climateMeasurementRecorder, $coordinates, new NativeClock());
 
             return new CloudRunFunction($dataProvider, $config->getFunctionConfig());
         }
