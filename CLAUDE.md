@@ -12,10 +12,10 @@ wires the sibling `christianjbrown/*` libraries together behind an HTTP entry po
 function in `index.php` builds the config, constructs a `MetOffice` client, and returns the PSR-7
 response.
 
-The app consumes several private `dev-main` sibling packages: `cloud-run-function-lib` (the HTTP
+The app consumes several sibling packages: `cloud-run-function-lib` (the HTTP
 envelope/gating/caching framework), `met-office-weather-datahub-api-sdk` (the read-only Met Office Weather
-DataHub client), `user-friendly-exception`, `christianbrown-database-orm` (the shared
-Doctrine ORM for the `christianbrown` schema), plus `code-quality-scripts` (dev). It runs
+DataHub client) and `user-friendly-exception` from Packagist, `christianbrown-database-orm` (the shared
+Doctrine ORM for the `christianbrown` schema) as a `dev-main` GitHub package, plus `code-quality-scripts` (dev). It runs
 on Google's [Functions Framework](https://github.com/GoogleCloudPlatform/functions-framework-php)
 locally.
 
