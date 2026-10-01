@@ -48,10 +48,11 @@ final class ConfigTransformer implements ConfigTransformerInterface
         $longitude = (float) $env[self::ENV_LONGITUDE];
 
         $databaseDsn = self::extractRequiredString($env, self::ENV_DATABASE_DSN);
+        $apiHost = self::extractRequiredString($env, self::ENV_API_HOST);
 
         $requestConfig = $this->functionConfigTransformer->transform($env);
 
-        return new Config($requestConfig, $apiKey, $latitude, $longitude, $databaseDsn);
+        return new Config($requestConfig, $apiKey, $latitude, $longitude, $databaseDsn, $apiHost);
     }
 
     /**

@@ -8,19 +8,26 @@ use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
 
 final class Config implements ConfigInterface
 {
+    private string $apiHost;
     private string $apiKey;
     private string $databaseDsn;
     private FunctionConfigInterface $functionConfig;
     private float $latitude;
     private float $longitude;
 
-    public function __construct(FunctionConfigInterface $functionConfig, string $apiKey, float $latitude, float $longitude, string $databaseDsn)
+    public function __construct(FunctionConfigInterface $functionConfig, string $apiKey, float $latitude, float $longitude, string $databaseDsn, string $apiHost)
     {
         $this->functionConfig = $functionConfig;
         $this->apiKey = $apiKey;
         $this->latitude = $latitude;
         $this->longitude = $longitude;
         $this->databaseDsn = $databaseDsn;
+        $this->apiHost = $apiHost;
+    }
+
+    public function getApiHost(): string
+    {
+        return $this->apiHost;
     }
 
     public function getApiKey(): string

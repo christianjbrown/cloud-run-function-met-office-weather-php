@@ -8,6 +8,8 @@ use ChristianBrown\CloudRunFunction\FunctionConfigInterface;
 
 interface ConfigInterface
 {
+    public function getApiHost(): string;
+
     public function getApiKey(): string;
 
     public function getDatabaseDsn(): string;

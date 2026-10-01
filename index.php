@@ -14,6 +14,7 @@ use ChristianBrown\CloudRunFunction\CorsHeaderBuilder;
 use ChristianBrown\CloudRunFunction\JsonResponseFactory;
 use ChristianBrown\CloudRunFunction\ResponseBodyBuilder;
 use ChristianBrown\MetOffice\Coordinates;
+use ChristianBrown\MetOffice\Host\ApiHost;
 use ChristianBrown\MetOffice\MetOfficeFactory;
 use ChristianBrown\MetOfficeWeather\CloudRunFunctionFactoryInterface;
 use ChristianBrown\MetOfficeWeather\ConfigInterface;
@@ -63,7 +64,8 @@ function run(ServerRequestInterface $request): ResponseInterface
         {
             $config = $this->config;
 
-            $metOffice = (new MetOfficeFactory())->create();
+            // The host comes from config so a test can point the client somewhere that refuses connections.
+            $metOffice = (new MetOfficeFactory())->createWithHost(new ApiHost($config->getApiHost()));
             $hourlyApi = $metOffice->siteSpecific($config->getApiKey())->getHourlyForecastApi();
 
             // One mapper per output field; the order here is the key order of the

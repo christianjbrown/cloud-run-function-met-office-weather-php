@@ -51,8 +51,8 @@ gitignored and Composer-installed, so run `composer install` first. Unlike the l
 `composer start` exports `.local.env` (git-ignored) and serves the function at `http://localhost:8080`
 (override with `PORT`) via `FUNCTION_TARGET=run` on the Functions Framework router. A local run needs
 at least `MET_OFFICE_WEATHER_API_KEY`, `MET_OFFICE_WEATHER_LATITUDE`, `MET_OFFICE_WEATHER_LONGITUDE`,
-`CHRISTIANBROWN_DATABASE_DSN` (a reachable MySQL DSN — e.g. the shared instance via the Cloud SQL
-proxy) and `K_REVISION` set — see `README.md` for the full env-var list.
+`MET_OFFICE_WEATHER_API_HOST`, `CHRISTIANBROWN_DATABASE_DSN` (a reachable MySQL DSN, e.g. the shared
+instance via the Cloud SQL proxy) and `K_REVISION` set. See `README.md` for the full env-var list.
 
 Style tooling comes from the `christianjbrown/code-quality-scripts` dev dependency (`check-style`
 runs **PHP_CodeSniffer 4** with the `ChristianBrown` standard — slevomat sniffs plus PSR/PEAR/Squiz/Generic
@@ -102,7 +102,8 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   array. It guards `MET_OFFICE_WEATHER_API_KEY` (`ENV_API_KEY`, presence + `is_string`),
   `MET_OFFICE_WEATHER_LATITUDE` / `MET_OFFICE_WEATHER_LONGITUDE` (`ENV_LATITUDE` / `ENV_LONGITUDE`,
   `isset` + `is_numeric`, then `(float)` cast — `isset` not `empty` so a legitimate `0` survives) and
-  `CHRISTIANBROWN_DATABASE_DSN` (`ENV_DATABASE_DSN`, presence + `is_string`) with sequential checks, and
+  `CHRISTIANBROWN_DATABASE_DSN` (`ENV_DATABASE_DSN`) and `MET_OFFICE_WEATHER_API_HOST` (`ENV_API_HOST`, the
+  DataHub base URL, so tests can point the client elsewhere), both presence + `is_string`, with sequential checks, and
   delegates the rest of the env to the injected `FunctionConfigTransformerInterface`.
 - **`DataProvider`** — implements the lib's `DataProviderInterface`. `getData()` fetches the hourly
   forecast for the configured lat/lon, then selects the **current step**: the step with the greatest
