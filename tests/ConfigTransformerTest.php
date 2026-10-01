@@ -31,6 +31,7 @@ final class ConfigTransformerTest extends TestCase
             ConfigTransformerInterface::ENV_LATITUDE => '51.546111',
             ConfigTransformerInterface::ENV_LONGITUDE => '-0.183111',
             ConfigTransformerInterface::ENV_DATABASE_DSN => 'test-database-dsn',
+            ConfigTransformerInterface::ENV_API_HOST => 'https://api.example.test',
         ];
 
         $functionConfig = self::createStub(FunctionConfigInterface::class);
@@ -48,7 +49,27 @@ final class ConfigTransformerTest extends TestCase
         self::assertSame(51.546111, $actual->getLatitude());
         self::assertSame(-0.183111, $actual->getLongitude());
         self::assertSame('test-database-dsn', $actual->getDatabaseDsn());
+        self::assertSame('https://api.example.test', $actual->getApiHost());
         self::assertSame($functionConfig, $actual->getFunctionConfig());
+    }
+
+    /**
+     * @param mixed[] $env
+     *
+     * @throws Exception
+     */
+    #[TestWith([[ConfigTransformerInterface::ENV_API_KEY => 'test-api-key', ConfigTransformerInterface::ENV_LATITUDE => '51.5', ConfigTransformerInterface::ENV_LONGITUDE => '-0.18', ConfigTransformerInterface::ENV_DATABASE_DSN => 'test-database-dsn']])]
+    #[TestWith([[ConfigTransformerInterface::ENV_API_KEY => 'test-api-key', ConfigTransformerInterface::ENV_LATITUDE => '51.5', ConfigTransformerInterface::ENV_LONGITUDE => '-0.18', ConfigTransformerInterface::ENV_DATABASE_DSN => 'test-database-dsn', ConfigTransformerInterface::ENV_API_HOST => null]])]
+    #[TestWith([[ConfigTransformerInterface::ENV_API_KEY => 'test-api-key', ConfigTransformerInterface::ENV_LATITUDE => '51.5', ConfigTransformerInterface::ENV_LONGITUDE => '-0.18', ConfigTransformerInterface::ENV_DATABASE_DSN => 'test-database-dsn', ConfigTransformerInterface::ENV_API_HOST => 42]])]
+    public function testTransformWithMissingApiHost(array $env): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(sprintf('%s not set or not a string', ConfigTransformerInterface::ENV_API_HOST));
+
+        $functionConfigTransformer = self::createStub(FunctionConfigTransformerInterface::class);
+
+        $transformer = new ConfigTransformer($functionConfigTransformer);
+        $transformer->transform($env);
     }
 
     /**

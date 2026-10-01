@@ -39,6 +39,7 @@ Configuration is read entirely from environment variables.
 | `MET_OFFICE_WEATHER_API_KEY` | ✅ | Your Met Office Weather DataHub Site-Specific API key. |
 | `MET_OFFICE_WEATHER_LATITUDE` | ✅ | Latitude of the location to forecast (decimal degrees). |
 | `MET_OFFICE_WEATHER_LONGITUDE` | ✅ | Longitude of the location to forecast (decimal degrees). |
+| `MET_OFFICE_WEATHER_API_HOST` | ✅ | Base URL of the Met Office DataHub API, `https://data.hub.api.metoffice.gov.uk` in production. |
 | `K_REVISION` | ✅ | Set automatically by the Cloud Run runtime; only needs setting yourself when running locally. |
 | `REQUIRED_HEADER_KEY` | — | If set (with `REQUIRED_HEADER_VALUE`), requests must send this header to be served. |
 | `REQUIRED_HEADER_VALUE` | — | Expected value for `REQUIRED_HEADER_KEY`. |
@@ -54,6 +55,7 @@ For local development, put these in a `.local.env` file in the project root (git
 MET_OFFICE_WEATHER_API_KEY=your-met-office-datahub-api-key
 MET_OFFICE_WEATHER_LATITUDE=51.546111
 MET_OFFICE_WEATHER_LONGITUDE=-0.183111
+MET_OFFICE_WEATHER_API_HOST=https://data.hub.api.metoffice.gov.uk
 K_REVISION=local
 ```
 
