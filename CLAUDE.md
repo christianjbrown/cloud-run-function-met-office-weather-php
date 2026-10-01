@@ -81,10 +81,10 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
 
 - **`index.php`** — defines `run(ServerRequestInterface): ResponseInterface`, the Functions Framework
   target, and sets `date_default_timezone_set('UTC')` at the top. It is a thin **composition root
-  only**: it reads `getenv()`, builds a `Config` via `ConfigTransformer`, then constructs an anonymous
-  `CloudRunFunctionFactoryInterface` whose `create()` holds the wiring (the `MetOffice` facade + its hourly
-  forecast client, the field mappers, the `OutputTransformer`, a `NativeClock` and the `DataProvider`, handed to a `CloudRunFunction`). It passes that factory + the `FunctionConfig`
-  to a `RequestHandler` and returns `handle($request)`. All the `new` wiring lives here (outside the
+  only**: it reads `getenv()`, builds a `Config` via `ConfigTransformer` (given `CloudRunFunctionFactory::createConfigTransformer()` from cloud-run-function-lib 2), then constructs an anonymous
+  `CloudRunFunctionFactoryInterface` whose `create()` holds the wiring (the SDK's `(new MetOfficeFactory())->create()` facade + its hourly
+  forecast client, the field mappers, the `OutputTransformer`, a `NativeClock` and the `DataProvider`, handed to `CloudRunFunctionFactory::create()`). It passes that factory, the `FunctionConfig` and a
+  `JsonResponseFactory` (built here) to a `RequestHandler` and returns `handle($request)`. All the `new` wiring lives here (outside the
   namespace, so it is excluded from coverage/PHPStan/phpcs, which only scan `src`/`tests`); the testable
   orchestration lives in `src`.
 - **`RequestHandler`** / **`RequestHandlerInterface`** — the testable entry-point orchestration.
@@ -92,7 +92,8 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `CloudRunFunction::run($request)`, wrapping **both** in one `try/catch (Throwable)`. Because the MetOffice
   client is built in the factory *before* the `CloudRunFunction` exists, a failure there would otherwise
   escape as a bare 500; the catch instead `error_log()`s the cause and returns the framework's
-  `JsonErrorResponse` envelope (matching the sibling `cloud-run-function-smartthings-climate` app).
+  JSON error envelope, built by the injected `JsonResponseFactoryInterface::error()` (lib 2 removed
+  `JsonErrorResponse`).
 - **`CloudRunFunctionFactoryInterface`** — the seam that defers the wiring so `RequestHandler` can wrap it;
   implemented as an anonymous class in `index.php` (the composition root) and mocked in tests.
 - **`Config`** / **`ConfigInterface`** — a small holder for the API key, latitude, longitude, plus the
@@ -102,7 +103,7 @@ top-level `index.php` holds the framework entry point and is intentionally outsi
   `MET_OFFICE_WEATHER_LATITUDE` / `MET_OFFICE_WEATHER_LONGITUDE` (`ENV_LATITUDE` / `ENV_LONGITUDE`,
   `isset` + `is_numeric`, then `(float)` cast — `isset` not `empty` so a legitimate `0` survives) and
   `CHRISTIANBROWN_DATABASE_DSN` (`ENV_DATABASE_DSN`, presence + `is_string`) with sequential checks, and
-  delegates the rest of the env to the injected `FunctionConfigTransformer`.
+  delegates the rest of the env to the injected `FunctionConfigTransformerInterface`.
 - **`DataProvider`** — implements the lib's `DataProviderInterface`. `getData()` fetches the hourly
   forecast for the configured lat/lon, then selects the **current step**: the step with the greatest
   `getTime()` that is at or before now (read from the injected PSR-20 `ClockInterface` on every
